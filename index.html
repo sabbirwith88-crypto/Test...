@@ -1,140 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Telegram Mini App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Telegram SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js?62"></script>
-
-  <!-- Ads SDK -->
+  <title>Ads Debug</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .box {
-      width: 90%;
-      max-width: 360px;
-      background: #1e293b;
-      padding: 25px;
-      border-radius: 15px;
-      text-align: center;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      background: #22c55e;
-      color: white;
-      margin-top: 15px;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #94a3b8;
-    }
-  </style>
 </head>
 
-<body>
+<body style="background:#111;color:#fff;text-align:center;padding-top:50px">
 
-<div class="box">
-  <h2>Mini App</h2>
-  <p>Start click → Interstitial Video Ads</p>
+<h2>ADS DEBUG</h2>
 
-  <button onclick="startApp()">START</button>
-  <div class="status" id="status">Waiting...</div>
-</div>
+<button onclick="testAd()">TEST ADS</button>
 
 <script>
-  let adsController = null;
+let ads;
 
-  function setStatus(text) {
-    document.getElementById("status").innerText = text;
+function init() {
+  console.log("SDK:", typeof TelegramAdsController);
+
+  if (typeof TelegramAdsController === "undefined") {
+    alert("SDK NOT LOADED");
+    return;
   }
 
-  // Check Telegram
-  function isTelegram() {
-    return window.Telegram && window.Telegram.WebApp;
+  ads = new TelegramAdsController();
+
+  ads.initialize({
+    pubId: "1009628",
+    appId: "395212"
+  });
+
+  console.log("INIT DONE");
+}
+
+function testAd() {
+  if (!window.Telegram || !Telegram.WebApp) {
+    alert("Not inside Telegram");
+    return;
   }
 
-  // Init Ads safely
-  function initAds() {
+  Telegram.WebApp.ready();
+
+  if (!ads) init();
+
+  setTimeout(() => {
     try {
-      if (typeof TelegramAdsController === "undefined") {
-        setStatus("❌ Ads SDK not loaded");
-        return false;
-      }
+      console.log("TRY SHOW AD");
 
-      adsController = new TelegramAdsController();
+      let result = ads.show();
 
-      adsController.initialize({
-        pubId: "1009628",
-        appId: "395212" // Interstitial Video ID
-      });
-
-      setStatus("✅ Ads initialized");
-      return true;
+      console.log("RESULT:", result);
 
     } catch (e) {
-      console.log(e);
-      setStatus("❌ Ads init failed");
-      return false;
+      console.log("ERROR:", e);
+      alert("ERROR: " + e.message);
     }
-  }
+  }, 1000);
+}
 
-  // Start button
-  function startApp() {
-
-    // 1. Telegram check
-    if (!isTelegram()) {
-      alert("Open inside Telegram bot WebApp");
-      setStatus("❌ Not Telegram");
-      return;
-    }
-
-    Telegram.WebApp.ready();
-    setStatus("✅ Telegram OK");
-
-    // 2. Init ads
-    if (!adsController) {
-      const ok = initAds();
-      if (!ok) return;
-    }
-
-    // 3. Show ads
-    setTimeout(() => {
-      try {
-        if (adsController && typeof adsController.show === "function") {
-          adsController.show();
-          setStatus("🎬 Ad triggered");
-        } else {
-          setStatus("❌ Ads not available");
-        }
-      } catch (e) {
-        console.log(e);
-        setStatus("❌ Ad error");
-      }
-    }, 800);
-  }
-
-  // Auto init
-  initAds();
+init();
 </script>
 
 </body>
