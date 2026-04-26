@@ -1,15 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Telegram Mini App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js?62"></script>
-
-  <!-- RichAds Telegram Script -->
-  <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
 
   <style>
     body {
@@ -18,34 +14,29 @@
       background: #0f172a;
       color: white;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       height: 100vh;
-      text-align: center;
     }
 
     .box {
+      text-align: center;
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 15px;
       width: 90%;
       max-width: 350px;
-      padding: 20px;
-      background: #1e293b;
-      border-radius: 15px;
     }
 
     button {
-      padding: 12px 20px;
-      font-size: 18px;
+      width: 100%;
+      padding: 12px;
       border: none;
       border-radius: 10px;
       background: #22c55e;
       color: white;
-      cursor: pointer;
-      width: 100%;
+      font-size: 18px;
       margin-top: 15px;
-    }
-
-    button:active {
-      transform: scale(0.98);
     }
   </style>
 </head>
@@ -53,29 +44,40 @@
 <body>
 
 <div class="box">
-  <h2>Telegram Mini App</h2>
-  <p>Start button click korle ads show hobe</p>
+  <h2>Telegram App</h2>
+  <p>Start click korle interstitial video ads show hobe</p>
 
   <button onclick="startApp()">START</button>
 </div>
 
 <script>
-  // Telegram Ads Controller init
-  window.TelegramAdsController = new TelegramAdsController();
+  let adsController;
 
-  window.TelegramAdsController.initialize({
-    pubId: "1009628",
-    appId: "7202",
-  });
+  function initAds() {
+    adsController = new TelegramAdsController();
+
+    adsController.initialize({
+      pubId: "1009628",
+      appId: "395212"   // 👈 তোমার Interstitial Video ID
+    });
+  }
 
   function startApp() {
-    // ads trigger (RichAds / Telegram playable)
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+    }
+
     try {
-      window.TelegramAdsController.show();
+      if (!adsController) initAds();
+
+      // Interstitial video show trigger
+      adsController.show();
     } catch (e) {
-      console.log("Ads not ready", e);
+      console.log("Ads not loaded", e);
     }
   }
+
+  initAds();
 </script>
 
 </body>
