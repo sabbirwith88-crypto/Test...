@@ -1,66 +1,247 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ads Debug</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Giga Offer Wall - Telegram Required</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: linear-gradient(145deg, #f5f7fc 0%, #e9eef4 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 2rem;
+      box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25);
+      padding: 2rem;
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1e2b3c, #0f4c5c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0 0 0.5rem;
+    }
+    .sub {
+      color: #2c5a6e;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #cbdbe2;
+      display: inline-block;
+      padding-bottom: 0.3rem;
+    }
+    .reward-btn {
+      background: #ffb347;
+      border: none;
+      padding: 12px 32px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      border-radius: 60px;
+      cursor: pointer;
+      width: 80%;
+      margin-top: 12px;
+    }
+    .reward-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      background: #eef2fa;
+      border-radius: 28px;
+      padding: 12px 18px;
+      margin: 24px 0 12px;
+      font-size: 0.85rem;
+      text-align: left;
+      border-left: 4px solid #ffb347;
+    }
+    .error {
+      background: #ffe6e5;
+      border-left-color: #d32f2f;
+      color: #b71c1c;
+    }
+    .badge {
+      background: #1f6e43;
+      color: white;
+      border-radius: 30px;
+      padding: 4px 12px;
+      font-size: 0.7rem;
+      display: inline-block;
+      margin-top: 8px;
+    }
+    footer {
+      font-size: 0.7rem;
+      color: #6f7a8a;
+      margin-top: 28px;
+    }
+  </style>
 </head>
+<body>
+<div class="card">
+  <h1>🎁 Giga Offer Wall</h1>
+  <div class="sub">earn rewards by completing offers</div>
 
-<body style="background:#111;color:#fff;text-align:center;padding-top:50px">
+  <button id="rewards-button" class="reward-btn" disabled>✨ Open Offerwall ✨</button>
 
-<h2>ADS DEBUG</h2>
-
-<button onclick="testAd()">TEST ADS</button>
+  <div class="status" id="sdk-status">
+    🔍 Checking Telegram environment...
+  </div>
+  <div id="reward-feedback"></div>
+  <footer>
+    ⚡ This feature only works inside Telegram (Mini App).<br>
+    Project ID: 6471
+  </footer>
+</div>
 
 <script>
-let ads;
-
-function init() {
-  console.log("SDK:", typeof TelegramAdsController);
-
-  if (typeof TelegramAdsController === "undefined") {
-    alert("SDK NOT LOADED");
-    return;
-  }
-
-  ads = new TelegramAdsController();
-
-  ads.initialize({
-    pubId: "1009628",
-    appId: "395212"
-  });
-
-  console.log("INIT DONE");
-}
-
-function testAd() {
-  if (!window.Telegram || !Telegram.WebApp) {
-    alert("Not inside Telegram");
-    return;
-  }
-
-  Telegram.WebApp.ready();
-
-  if (!ads) init();
-
-  setTimeout(() => {
-    try {
-      console.log("TRY SHOW AD");
-
-      let result = ads.show();
-
-      console.log("RESULT:", result);
-
-    } catch (e) {
-      console.log("ERROR:", e);
-      alert("ERROR: " + e.message);
+  (function() {
+    // ---------- Helper: credit user (simulate backend) ----------
+    async function creditUserReward(userId, amount) {
+      console.log(`[creditUserReward] crediting userId=${userId} with ${amount} coins`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const feedbackDiv = document.getElementById('reward-feedback');
+      if (feedbackDiv) {
+        const msg = document.createElement('div');
+        msg.className = 'badge';
+        msg.style.background = '#2b7a4b';
+        msg.style.marginTop = '10px';
+        msg.innerText = `✅ +${amount} credited to user ${userId}`;
+        feedbackDiv.prepend(msg);
+        setTimeout(() => msg.remove(), 4000);
+      }
+      return true;
     }
-  }, 1000);
-}
 
-init();
+    // ---------- Reward handler ----------
+    async function handleReward(sdk, rewardData) {
+      const { rewardId, hash, userId, amount } = rewardData;
+      try {
+        await creditUserReward(userId, amount);
+        await sdk.confirmReward(rewardId, hash);
+        return true;
+      } catch (err) {
+        console.error(`Failed to handle reward ${rewardId}:`, err);
+        return false;
+      }
+    }
+
+    // ---------- Claim pending rewards ----------
+    async function claimPendingRewards(sdk) {
+      try {
+        const pendingList = await sdk.pending();
+        if (pendingList && pendingList.length) {
+          for (const reward of pendingList) {
+            await handleReward(sdk, reward);
+          }
+        }
+      } catch (err) {
+        console.error('Pending rewards error:', err);
+      }
+    }
+
+    // ---------- Real Telegram detection ----------
+    function isTelegramWebApp() {
+      return !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+    }
+
+    const rewardsButton = document.getElementById('rewards-button');
+    const statusDiv = document.getElementById('sdk-status');
+
+    if (!isTelegramWebApp()) {
+      // Not inside Telegram → show error and abort
+      statusDiv.className = 'status error';
+      statusDiv.innerHTML = '❌ This offer wall requires Telegram. Please open this page via a Telegram bot (Mini App mode).<br><br>📱 <strong>How to fix:</strong><br>1. Create a Telegram bot via <a href="https://t.me/botfather" target="_blank">@BotFather</a>.<br>2. Set the Web App URL to this page.<br>3. Open the Mini App from the bot.<br><br>🚫 Cannot load SDK without Telegram user data.';
+      rewardsButton.disabled = true;
+      // Stop further execution
+      throw new Error('Missing Telegram WebApp environment');
+    }
+
+    // If we reach here, we are inside Telegram Web App
+    const webApp = window.Telegram.WebApp;
+    webApp.ready(); // Tell Telegram the app is ready
+    const user = webApp.initDataUnsafe?.user;
+    console.log('Telegram user:', user);
+
+    // ---------- Load Giga SDK ----------
+    async function initSDK() {
+      if (!window.loadOfferWallSDK) {
+        statusDiv.innerHTML = '❌ OfferWall SDK loader missing. Check network.';
+        return;
+      }
+      statusDiv.innerHTML = '🔄 Initializing Giga SDK (Telegram mode)...';
+      try {
+        const sdk = await window.loadOfferWallSDK({ projectId: '6471' });
+        window.gigaOfferWallSDK = sdk;
+
+        await claimPendingRewards(sdk);
+
+        sdk.on('rewardClaim', async (data) => {
+          console.log('New rewardClaim event:', data);
+          statusDiv.innerHTML = `✨ Processing reward ${data.rewardId} ...`;
+          await handleReward(sdk, data);
+          statusDiv.innerHTML = '✅ Reward confirmed.';
+        });
+
+        const offersAvailable = sdk.hasOffers();
+        if (offersAvailable) {
+          rewardsButton.disabled = false;
+          statusDiv.innerHTML = `✅ Welcome ${user?.first_name || 'user'}! Offers available. Click button to open offerwall.`;
+        } else {
+          rewardsButton.disabled = true;
+          statusDiv.innerHTML = '⚠️ No offers available at the moment.';
+        }
+
+        sdk.getOffers().then(offers => console.log('Offers:', offers)).catch(console.warn);
+      } catch (err) {
+        console.error('SDK init error:', err);
+        statusDiv.innerHTML = `❌ SDK error: ${err.message || 'unknown'}`;
+        rewardsButton.disabled = true;
+      }
+    }
+
+    function openOfferWall() {
+      if (window.gigaOfferWallSDK?.open) {
+        window.gigaOfferWallSDK.open();
+      } else {
+        statusDiv.innerHTML = '⚠️ SDK not ready yet.';
+      }
+    }
+
+    // Load script and init
+    function loadGigaSDKScript() {
+      if (window.loadOfferWallSDK) {
+        initSDK();
+        return;
+      }
+      window.loadGigaSDKCallbacks = window.loadGigaSDKCallbacks || [];
+      window.loadGigaSDKCallbacks.push(initSDK);
+      const script = document.createElement('script');
+      script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6471';
+      script.async = true;
+      script.onerror = () => {
+        statusDiv.innerHTML = '❌ Failed to load SDK script.';
+      };
+      document.head.appendChild(script);
+    }
+
+    rewardsButton.addEventListener('click', openOfferWall);
+    loadGigaSDKScript();
+
+    // Expand WebApp to full height (optional)
+    webApp.expand();
+  })();
 </script>
-
 </body>
 </html>
